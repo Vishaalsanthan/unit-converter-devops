@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: unit-converter
+
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: unit-converter
+
+  template:
+    metadata:
+      labels:
+        app: unit-converter
+
+    spec:
+      containers:
+        - name: unit-converter
+
+          image: unit-converter:1.0
+
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 80
+
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+
+            limits:
+              cpu: "200m"
+              memory: "128Mi"

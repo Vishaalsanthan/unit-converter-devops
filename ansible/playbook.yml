@@ -1,0 +1,89 @@
+---
+- name: Configure Jenkins for Unit Converter CI/CD
+  hosts: jenkins
+  become: true
+
+  tasks:
+
+    - name: Ensure Jenkins service is enabled and running
+      ansible.builtin.systemd:
+        name: jenkins
+        enabled: true
+        state: started
+
+    - name: Add Jenkins user to Docker group
+      ansible.builtin.user:
+        name: jenkins
+        groups: docker
+        append: true
+
+    - name: Ensure Jenkins kube directory exists
+      ansible.builtin.file:
+        path: /var/lib/jenkins/.kube
+        state: directory
+        owner: jenkins
+        group: jenkins
+        mode: "0700"
+
+    - name: Copy Kind kubeconfig to Jenkins
+      ansible.builtin.copy:
+        src: /home/vishaal/.kube/config
+        dest: /var/lib/jenkins/.kube/config
+        owner: jenkins
+        group: jenkins
+        mode: "0600"
+
+    - name: Ensure Jenkins systemd override directory exists
+      ansible.builtin.file:
+        path: /etc/systemd/system/jenkins.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Configure Jenkins environment
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/jenkins.service.d/override.conf
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [Service]
+          Environment="JAVA_OPTS=-Djava.awt.headless=true -Djava.net.preferIPv4Stack=true"
+          Environment="KUBECONFIG=/var/lib/jenkins/.kube/config"
+
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Restart Jenkins
+      ansible.builtin.systemd:
+        name: jenkins
+        state: restarted
+
+    - name: Verify Docker access for Jenkins
+      ansible.builtin.command:
+        cmd: docker version
+      become_user: jenkins
+      environment:
+        HOME: /var/lib/jenkins
+      register: docker_check
+      changed_when: false
+
+    - name: Verify Kubernetes nodes for Jenkins
+      ansible.builtin.command:
+        cmd: kubectl get nodes
+      become_user: jenkins
+      environment:
+        HOME: /var/lib/jenkins
+        KUBECONFIG: /var/lib/jenkins/.kube/config
+      register: kubectl_check
+      changed_when: false
+
+    - name: Show Docker verification
+      ansible.builtin.debug:
+        msg: "{{ docker_check.stdout }}"
+
+    - name: Show Kubernetes verification
+      ansible.builtin.debug:
+        msg: "{{ kubectl_check.stdout }}"

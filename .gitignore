@@ -1,0 +1,24 @@
+# Git
+.git/
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/.terraform.lock.hcl
+
+# Environment / secrets
+.env
+*.secret
+*.pem
+
+# Editors
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
